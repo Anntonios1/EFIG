@@ -39,23 +39,8 @@ services:
       - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
         value: "true"
       
-      # Base de datos PostgreSQL (externa en GCP)
-      - key: DB_TYPE
-        value: "postgresdb"
-      - key: DB_POSTGRESDB_HOST
-        value: "34.66.86.207"
-      - key: DB_POSTGRESDB_PORT
-        value: "5433"
-      - key: DB_POSTGRESDB_DATABASE
-        value: "n8n_db"
-      - key: DB_POSTGRESDB_USER
-        value: "n8n_user"
-      - key: DB_POSTGRESDB_PASSWORD
-        sync: false  # Necesitarás configurar esto manualmente
-      - key: DB_POSTGRESDB_SSL_ENABLED
-        value: "true"
-      - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
-        value: "false"
+      # Base de datos SQLite (por defecto)
+      # Sin configuración adicional - n8n usará SQLite automáticamente
       
       # Configuración de logging
       - key: N8N_LOG_LEVEL

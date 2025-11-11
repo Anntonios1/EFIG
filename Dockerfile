@@ -2,7 +2,7 @@ FROM n8nio/n8n:latest
 
 # Instalar dependencias adicionales como root
 USER root
-RUN apk add --no-cache postgresql-client curl
+RUN apk add --no-cache curl
 
 # Variables de entorno para producción
 ENV NODE_ENV=production
@@ -14,11 +14,6 @@ ENV N8N_LOG_OUTPUT=console
 
 # Configuración de timezone
 ENV TZ=America/Bogota
-
-# Configuración de base de datos PostgreSQL
-ENV DB_TYPE=postgresdb
-ENV DB_POSTGRESDB_SSL_ENABLED=true
-ENV DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED=false
 
 # Configuración de permisos
 ENV N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
