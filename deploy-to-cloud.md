@@ -153,7 +153,7 @@ gcloud run deploy copilot-api \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GITHUB_TOKEN=ghu_huZKj1sFEYQic1AUZM6ua3CY01QsBF2S4zw6
+  --set-env-vars GITHUB_TOKEN=YOUR_GITHUB_TOKEN_HERE
 
 # 3. Obtener URL
 gcloud run services describe copilot-api --region us-central1 --format='value(status.url)'

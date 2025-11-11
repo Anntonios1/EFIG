@@ -24,7 +24,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GITHUB_TOKEN=ghu_huZKj1sFEYQic1AUZM6ua3CY01QsBF2S4zw6
+      - GITHUB_TOKEN=YOUR_GITHUB_TOKEN_HERE
 
 volumes:
   postgres_data:
