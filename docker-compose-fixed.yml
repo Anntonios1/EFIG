@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: postgres_cloud
+    restart: always
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8npass
+      POSTGRES_DB: n8n_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Copilot API Server
+  copilot-api:
+    build: ./copilot-api-server
+    container_name: copilot_api_cloud
+    restart: always
+    ports:
+      - "8002:8000"
+    environment:
+      - GITHUB_COPILOT_TOKEN=ghu_huZKj1sFEYQic1AUZM6ua3CY01QsBF2S4zw6
+
+volumes:
+  postgres_data:

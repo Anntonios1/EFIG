@@ -1,0 +1,8 @@
+# Ignorar node_modules (se instalarán en el contenedor)
+node_modules/
+npm-debug.log
+.env
+.git/
+.gitignore
+README.md
+*.md

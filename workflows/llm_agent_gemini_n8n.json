@@ -1,0 +1,344 @@
+{
+  "name": "LLM Agent - Gemini (Google AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agente",
+        "responseMode": "responseNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "name": "Webhook - Entrada del Usuario",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "llm-agent-agencia"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "value": "Eres un asistente inteligente para una agencia de viajes. Tu rol es interpretar las solicitudes del usuario y decidir qué acciones realizar en la base de datos PostgreSQL.\n\nBase de datos disponible:\n- Tabla 'clientes': id_cliente, nombre_completo, email, telefono, documento, fecha_registro, tipo_cliente\n- Tabla 'reservas': id_reserva, id_cliente, tipo, origen, destino, fecha_salida, fecha_regreso, estado, precio, notas\n- Tabla 'pagos': id_pago, id_reserva, monto, fecha, metodo, estado\n\nTu tarea:\n1. Analiza la intención del usuario (registrar cliente, crear reserva, consultar datos, etc.)\n2. Genera el SQL necesario para ejecutar la operación\n3. Devuelve ÚNICAMENTE un JSON estructurado con esta forma:\n\n{\n  \"action\": \"insert|select|update|delete\",\n  \"table\": \"clientes|reservas|pagos\",\n  \"sql\": \"la consulta SQL completa y segura\",\n  \"response_message\": \"mensaje amigable para el usuario\"\n}\n\nEjemplos:\n- Usuario: \"Registra un cliente llamado Ana Perez, email ana@test.com, teléfono +34123456789\"\n  Respuesta: {\"action\":\"insert\",\"table\":\"clientes\",\"sql\":\"INSERT INTO clientes (id_cliente, nombre_completo, email, telefono, tipo_cliente, fecha_registro) VALUES ('C-'||floor(random()*9000+1000)::text, 'Ana Perez', 'ana@test.com', '+34123456789', 'nuevo', CURRENT_DATE) RETURNING *;\",\"response_message\":\"Cliente Ana Perez registrado exitosamente\"}\n\n- Usuario: \"Muéstrame todos los clientes VIP\"\n  Respuesta: {\"action\":\"select\",\"table\":\"clientes\",\"sql\":\"SELECT * FROM clientes WHERE tipo_cliente = 'VIP' ORDER BY fecha_registro DESC;\",\"response_message\":\"Aquí están los clientes VIP\"}\n\n- Usuario: \"Crea una reserva de vuelo para el cliente C-0001 a París desde el 10 al 15 de diciembre\"\n  Respuesta: {\"action\":\"insert\",\"table\":\"reservas\",\"sql\":\"INSERT INTO reservas (id_reserva, id_cliente, tipo, destino, fecha_salida, fecha_regreso, estado, fecha_registro) VALUES ('R-'||floor(random()*9000+1000)::text, 'C-0001', 'vuelo', 'París', '2025-12-10', '2025-12-15', 'pendiente', CURRENT_DATE) RETURNING *;\",\"response_message\":\"Reserva de vuelo a París creada para el cliente C-0001\"}\n\nIMPORTANTE: \n- Devuelve SOLO el JSON, sin texto adicional\n- No uses markdown ni bloques de código\n- El JSON debe ser válido y parseable"
+            },
+            {
+              "name": "userMessage",
+              "value": "={{ $json.body.mensaje || $json.body.message || $json.body.query || 'Sin mensaje' }}"
+            },
+            {
+              "name": "fullPrompt",
+              "value": "={{ $json.systemPrompt + '\\n\\nUsuario: ' + ($json.body.mensaje || $json.body.message || $json.body.query || 'Sin mensaje') + '\\n\\nResponde ÚNICAMENTE con el JSON, sin explicaciones adicionales:' }}"
+            },
+            {
+              "name": "originalInput",
+              "value": "={{ $json.body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Preparar Contexto LLM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $credentials.apiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{ [{\"parts\": [{\"text\": $json.fullPrompt}]}] }}"
+            },
+            {
+              "name": "generationConfig",
+              "value": "={{ {\"temperature\": 0.2, \"maxOutputTokens\": 2048} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Google Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLE_API_CREDENTIAL_ID",
+          "name": "Google PaLM API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "llmResponse",
+              "value": "={{ $json.candidates[0].content.parts[0].text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extraer Respuesta Gemini",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [940, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parsear la respuesta del LLM\nconst llmResponse = $input.first().json.llmResponse;\n\ntry {\n  // Limpiar respuesta (eliminar markdown si existe)\n  let cleaned = llmResponse.trim();\n  \n  // Eliminar bloques de código markdown si existen\n  cleaned = cleaned.replace(/```json\\s*/g, '').replace(/```\\s*/g, '');\n  \n  // Extraer JSON del texto\n  const jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (!jsonMatch) {\n    return [{\n      json: {\n        error: true,\n        message: \"El LLM no devolvió un JSON válido\",\n        raw: llmResponse\n      }\n    }];\n  }\n  \n  const parsed = JSON.parse(jsonMatch[0]);\n  \n  // Validar que tiene los campos requeridos\n  if (!parsed.action || !parsed.sql || !parsed.response_message) {\n    return [{\n      json: {\n        error: true,\n        message: \"JSON incompleto, faltan campos requeridos\",\n        raw: llmResponse\n      }\n    }];\n  }\n  \n  return [{\n    json: {\n      action: parsed.action,\n      table: parsed.table || 'unknown',\n      sql: parsed.sql,\n      response_message: parsed.response_message,\n      error: false\n    }\n  }];\n  \n} catch (error) {\n  return [{\n    json: {\n      error: true,\n      message: \"Error al parsear la respuesta del LLM: \" + error.message,\n      raw: llmResponse\n    }\n  }];\n}"
+      },
+      "name": "Parsear Decisión del LLM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "¿Hay Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1420, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "name": "Ejecutar SQL en Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1660, 200],
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "success",
+              "value": true
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Parsear Decisión del LLM').item.json.response_message }}"
+            },
+            {
+              "name": "action",
+              "value": "={{ $('Parsear Decisión del LLM').item.json.action }}"
+            },
+            {
+              "name": "table",
+              "value": "={{ $('Parsear Decisión del LLM').item.json.table }}"
+            },
+            {
+              "name": "sql_executed",
+              "value": "={{ $('Parsear Decisión del LLM').item.json.sql }}"
+            },
+            {
+              "name": "result",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Formatear Respuesta Exitosa",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1900, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "success",
+              "value": false
+            },
+            {
+              "name": "error_message",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "raw_response",
+              "value": "={{ $json.raw }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Formatear Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1660, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "name": "Responder al Usuario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2140, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Entrada del Usuario": {
+      "main": [
+        [
+          {
+            "node": "Preparar Contexto LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Contexto LLM": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Extraer Respuesta Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Respuesta Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parsear Decisión del LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Decisión del LLM": {
+      "main": [
+        [
+          {
+            "node": "¿Hay Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay Error?": {
+      "main": [
+        [
+          {
+            "node": "Formatear Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar SQL en Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar SQL en Postgres": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta Exitosa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta Exitosa": {
+      "main": [
+        [
+          {
+            "node": "Responder al Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Error": {
+      "main": [
+        [
+          {
+            "node": "Responder al Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

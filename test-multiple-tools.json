@@ -1,0 +1,47 @@
+{
+  "model": "gpt-4o",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Busca información sobre el cliente con ID C-0036 y muéstrame sus reservas"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "buscar_cliente",
+        "description": "Busca un cliente por su ID en la base de datos",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "cliente_id": {
+              "type": "string",
+              "description": "El ID del cliente (formato: C-XXXX)"
+            }
+          },
+          "required": ["cliente_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "listar_reservas",
+        "description": "Lista todas las reservas de un cliente específico",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "cliente_id": {
+              "type": "string",
+              "description": "El ID del cliente"
+            }
+          },
+          "required": ["cliente_id"]
+        }
+      }
+    }
+  ],
+  "temperature": 0.3,
+  "stream": false
+}

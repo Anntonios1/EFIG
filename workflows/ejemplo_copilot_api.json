@@ -1,0 +1,72 @@
+{
+  "name": "🤖 Ejemplo: Copilot API (GPT-4 Gratis)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copilot-api:8000/v1/chat/completions",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Explica en 2 lineas que es n8n\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 500\n}",
+        "options": {}
+      },
+      "id": "http-copilot",
+      "name": "Llamar a Copilot API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer la respuesta del GPT-4\nconst response = $input.item.json;\nconst mensaje = response.choices[0].message.content;\n\nreturn {\n  json: {\n    pregunta: \"Explica en 2 lineas que es n8n\",\n    respuesta: mensaje,\n    modelo: response.model,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "code-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "Llamar a Copilot API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar a Copilot API": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T19:23:00.000Z",
+  "versionId": "1"
+}

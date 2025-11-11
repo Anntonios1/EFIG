@@ -1,0 +1,585 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "baseURL": "http://34.66.86.207:8002/v1",
+          "maxTokens": 4000,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        192
+      ],
+      "id": "copilot-model",
+      "name": "Copilot Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "E9v9rpqe8xFnI1cb",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "get-all-clientes",
+      "name": "GET: Ver Todos los Clientes",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        -600,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "reservas"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "get-all-reservas",
+      "name": "GET: Ver Todas las Reservas",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        -400,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "pagos"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "get-all-pagos",
+      "name": "GET: Ver Todos los Pagos",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        -200,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.*, \n  COUNT(r.id_reserva) as total_reservas,\n  COALESCE(SUM(p.monto), 0) as total_pagado\nFROM clientes c\nLEFT JOIN reservas r ON c.id_cliente = r.id_cliente\nLEFT JOIN pagos p ON r.id_reserva = p.id_reserva\nWHERE c.id_cliente = '{{ $json.id_cliente }}'\nGROUP BY c.id_cliente",
+        "options": {}
+      },
+      "id": "get-cliente-detalle",
+      "name": "GET: Cliente con Detalles",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT r.*, c.nombre_completo, c.email, c.telefono\nFROM reservas r\nJOIN clientes c ON r.id_cliente = c.id_cliente\nWHERE r.id_cliente = '{{ $json.id_cliente }}'\nORDER BY r.fecha_salida DESC",
+        "options": {}
+      },
+      "id": "get-reservas-cliente",
+      "name": "GET: Reservas de Cliente",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        200,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.*, r.tipo as tipo_reserva, r.destino, c.nombre_completo\nFROM pagos p\nJOIN reservas r ON p.id_reserva = r.id_reserva\nJOIN clientes c ON r.id_cliente = c.id_cliente\nWHERE p.id_reserva = '{{ $json.id_reserva }}'\nORDER BY p.fecha_pago DESC",
+        "options": {}
+      },
+      "id": "get-pagos-reserva",
+      "name": "GET: Pagos de Reserva",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  tipo_cliente,\n  COUNT(*) as cantidad,\n  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) as porcentaje\nFROM clientes\nGROUP BY tipo_cliente\nORDER BY cantidad DESC",
+        "options": {}
+      },
+      "id": "get-stats-clientes",
+      "name": "GET: Estadísticas Clientes",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        600,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  estado,\n  COUNT(*) as cantidad,\n  SUM(precio) as ingreso_total\nFROM reservas\nGROUP BY estado\nORDER BY cantidad DESC",
+        "options": {}
+      },
+      "id": "get-stats-reservas",
+      "name": "GET: Estadísticas Reservas",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        800,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crea un nuevo cliente. Campos requeridos: nombre_completo (texto), email (texto), telefono (texto). Campos opcionales: documento (texto), tipo_cliente (texto: nuevo/frecuente/VIP, por defecto 'nuevo'). Retorna el cliente creado con su id_cliente generado.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre_completo": "={{ $json.nombre_completo }}",
+            "email": "={{ $json.email }}",
+            "telefono": "={{ $json.telefono }}",
+            "documento": "={{ $json.documento }}",
+            "tipo_cliente": "={{ $json.tipo_cliente || 'nuevo' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "post-cliente",
+      "name": "POST: Crear Cliente",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        -600,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crea una nueva reserva. Campos requeridos: id_cliente (formato C-XXXX), tipo (vuelo/hotel/paquete), destino (texto), fecha_salida (YYYY-MM-DD), precio (número). Campos opcionales: origen (texto), fecha_regreso (YYYY-MM-DD), notas (texto). Retorna la reserva creada con su id_reserva.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "reservas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_cliente": "={{ $json.id_cliente }}",
+            "tipo": "={{ $json.tipo }}",
+            "origen": "={{ $json.origen }}",
+            "destino": "={{ $json.destino }}",
+            "fecha_salida": "={{ $json.fecha_salida }}",
+            "fecha_regreso": "={{ $json.fecha_regreso }}",
+            "precio": "={{ $json.precio }}",
+            "estado": "pendiente",
+            "notas": "={{ $json.notas }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "post-reserva",
+      "name": "POST: Crear Reserva",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        -400,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Registra un nuevo pago. Campos requeridos: id_reserva (formato R-XXXX), monto (número decimal), metodo (efectivo/tarjeta/transferencia/PSE). Campo opcional: estado (completado/pendiente, por defecto completado). Retorna el pago creado con su id_pago.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "pagos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_reserva": "={{ $json.id_reserva }}",
+            "monto": "={{ $json.monto }}",
+            "metodo": "={{ $json.metodo }}",
+            "estado": "={{ $json.estado || 'completado' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "post-pago",
+      "name": "POST: Crear Pago",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        -200,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Actualiza un cliente existente. Campo requerido: id_cliente (formato C-XXXX). Campos opcionales a actualizar: nombre_completo, email, telefono, documento, tipo_cliente. Solo los campos proporcionados serán actualizados.",
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre_completo": "={{ $json.nombre_completo }}",
+            "email": "={{ $json.email }}",
+            "telefono": "={{ $json.telefono }}",
+            "documento": "={{ $json.documento }}",
+            "tipo_cliente": "={{ $json.tipo_cliente }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "column": "id_cliente",
+              "value": "={{ $json.id_cliente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "put-cliente",
+      "name": "PUT: Actualizar Cliente",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Actualiza una reserva existente. Campo requerido: id_reserva (formato R-XXXX). Campos opcionales: tipo, origen, destino, fecha_salida, fecha_regreso, precio, estado (pendiente/confirmada/cancelada/completada), notas.",
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "reservas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tipo": "={{ $json.tipo }}",
+            "origen": "={{ $json.origen }}",
+            "destino": "={{ $json.destino }}",
+            "fecha_salida": "={{ $json.fecha_salida }}",
+            "fecha_regreso": "={{ $json.fecha_regreso }}",
+            "precio": "={{ $json.precio }}",
+            "estado": "={{ $json.estado }}",
+            "notas": "={{ $json.notas }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "column": "id_reserva",
+              "value": "={{ $json.id_reserva }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "put-reserva",
+      "name": "PUT: Actualizar Reserva",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        200,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Actualiza un pago existente. Campo requerido: id_pago (formato P-XXXX). Campos opcionales: monto, metodo, estado (completado/pendiente).",
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "pagos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "monto": "={{ $json.monto }}",
+            "metodo": "={{ $json.metodo }}",
+            "estado": "={{ $json.estado }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "column": "id_pago",
+              "value": "={{ $json.id_pago }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "put-pago",
+      "name": "PUT: Actualizar Pago",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0tzwMge2e7xbFQw3",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Copilot Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "GET: Ver Todos los Clientes": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Ver Todas las Reservas": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Ver Todos los Pagos": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Cliente con Detalles": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Reservas de Cliente": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Pagos de Reserva": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Estadísticas Clientes": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GET: Estadísticas Reservas": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "POST: Crear Cliente": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "POST: Crear Reserva": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "POST: Crear Pago": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "PUT: Actualizar Cliente": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "PUT: Actualizar Reserva": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "PUT: Actualizar Pago": {
+      "ai_tool": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f595fdaae77b3278694f72ad406143f43495832a43bfe8c294dccb2f6c43a3df"
+  }
+}

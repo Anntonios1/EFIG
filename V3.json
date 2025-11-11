@@ -1,0 +1,623 @@
+{
+  "name": "Telegram Role-Based Reservation Management System with AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=Eres un asistente de EFIG Vuelos & Travel para clientes.\n\n**Tu cliente actual:**\n- ID: {{ $json.id_cliente }}\n- Nombre: {{ $json.nombre }}\n- Telegram ID: {{ $json.telegram_id }}\n\n**HERRAMIENTAS DISPONIBLES (4):**\n\n### 1. Ver Mis Reservas\nMuestra todas las reservas del cliente actual.\n**Cuándo usar:** \"mis reservas\", \"ver mis viajes\", \"qué tengo reservado\"\n\n### 2. Crear Reserva\nCrea una nueva reserva para el cliente.\n**Datos requeridos:**\n- tipo: \"vuelo\", \"hotel\" o \"paquete\"\n- destino (obligatorio)\n- fecha_salida (formato YYYY-MM-DD)\n- precio (número)\n- origen, fecha_regreso, notas (opcionales)\n\n**Proceso:**\n1. Recolecta todos los datos necesarios\n2. Confirma con el cliente\n3. Usa la herramienta con id_cliente={{ $json.id_cliente }}\n\n### 3. Ver Perfil\nMuestra los datos del perfil del cliente actual.\n**Cuándo usar:** \"mi perfil\", \"mis datos\", \"mi información\"\n\n### 4. Actualizar Datos\nActualiza la información del cliente.\n**Campos que puedes actualizar:** nombre_completo, email, telefono, documento\n\n**PRECIOS SUGERIDOS (COP):**\n\n**Colombia:**\n- Cartagena: $300.000 - $500.000\n- San Andrés: $500.000 - $800.000\n- Medellín: $250.000 - $400.000\n- Santa Marta: $300.000 - $450.000\n- Eje Cafetero: $280.000 - $420.000\n\n**Internacional:**\n- Cancún (México): $1.200.000 - $1.800.000\n- Miami (USA): $1.500.000 - $2.500.000\n- Buenos Aires: $1.500.000 - $2.200.000\n- Madrid: $2.500.000 - $3.800.000\n- París: $2.800.000 - $4.200.000\n\n**ESTILO:**\n- Amable y profesional 😊\n- Usa emojis ✈️🌍🏨\n- Siempre confirma antes de crear reservas\n- Da recomendaciones de destinos\n- Pregunta lo que falte\n\n¡Ayuda a tu cliente a planear el viaje perfecto! 🎉"
+        }
+      },
+      "id": "98992b1a-0c50-4a2f-8f74-fa64e22456ac",
+      "name": "AI Agent - Cliente",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "Eres el asistente administrativo de EFIG Vuelos & Travel. Tienes acceso completo al sistema.\n\n**HERRAMIENTAS DISPONIBLES (6):**\n\n### 1. Ver Todas Reservas\nObtiene TODAS las reservas del sistema con información del cliente.\n**Cuándo usar:** \"todas las reservas\", \"lista de reservas\", \"reservas del sistema\"\n\n### 2. Ver Clientes\nObtiene la lista completa de clientes registrados.\n**Cuándo usar:** \"lista de clientes\", \"todos los clientes\", \"clientes registrados\"\n\n### 3. Ver Pagos\nObtiene todos los pagos registrados en el sistema.\n**Cuándo usar:** \"pagos\", \"lista de pagos\", \"transacciones\"\n\n### 4. Crear Reserva\nCrea una nueva reserva para cualquier cliente.\n**Proceso:**\n1. Busca el id_cliente del cliente en Ver Clientes\n2. Recolecta: tipo, destino, fecha_salida, precio\n3. Confirma y crea\n\n### 5. Crear Cliente\nRegistra un nuevo cliente en el sistema.\n**Datos requeridos:**\n- nombre_completo (obligatorio)\n- email (obligatorio)\n- telefono (obligatorio)\n- documento (opcional)\n- tipo_cliente: \"nuevo\", \"frecuente\" o \"VIP\"\n\n### 6. Crear Pago\nRegistra un nuevo pago para una reserva.\n**Datos requeridos:**\n- id_reserva (busca primero en Ver Todas Reservas)\n- monto (número)\n- metodo: \"efectivo\", \"tarjeta\", \"transferencia\", \"PSE\"\n- estado: \"completado\" o \"pendiente\"\n\n**CAPACIDADES:**\n✅ Ver todas las reservas con detalles\n✅ Gestionar clientes (ver, crear)\n✅ Ver pagos del sistema\n✅ Crear reservas para cualquier cliente\n✅ Registrar pagos\n✅ Generar reportes y estadísticas\n\n**ESTADÍSTICAS ÚTILES:**\nCuando te pidan estadísticas, usa las herramientas para:\n- Contar reservas por estado\n- Calcular ingresos totales\n- Identificar clientes frecuentes\n- Analizar destinos populares\n\n**ESTILO:**\n- Profesional y eficiente 💼\n- Respuestas con datos concretos 📊\n- Usa tablas cuando sea apropiado\n- Siempre confirma acciones importantes ✅\n\n¡Gestiona el sistema con excelencia! 🚀"
+        }
+      },
+      "id": "1b924969-9f91-45df-abc6-68c0baf125ee",
+      "name": "AI Agent - Admin",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        -496
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "id": "b0a31c55-183c-49b3-9859-5c98de826b27",
+      "name": "Google Gemini Chat Model - Cliente",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        256
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NNpLyVvGQmCB6aqb",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "id": "500c6c2e-4ec0-45f2-af1a-58dd289d3083",
+      "name": "Google Gemini Chat Model - Admin",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -272
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NNpLyVvGQmCB6aqb",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "reservas"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "dc93a01d-9cb3-4669-9689-e05cde1081a9",
+      "name": "Ver Mis Reservas",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        640,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "descriptionType": "manual",
+        "toolDescription": "Crea una nueva reserva. Campos requeridos: id_cliente (texto formato C-XXXX), tipo (texto: vuelo/hotel/paquete), destino (texto), fecha_salida (texto formato YYYY-MM-DD), precio (número decimal). Campos opcionales: origen (texto), fecha_regreso (texto formato YYYY-MM-DD), notas (texto). Retorna el ID de la reserva creada.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "reservas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_cliente": "={{ $json.id_cliente }}",
+            "tipo": "={{ $json.tipo || 'vuelo' }}",
+            "origen": "={{ $json.origen }}",
+            "destino": "={{ $json.destino }}",
+            "fecha_salida": "={{ $json.fecha_salida }}",
+            "fecha_regreso": "={{ $json.fecha_regreso }}",
+            "precio": "={{ $json.precio }}",
+            "estado": "pendiente",
+            "notas": "={{ $json.notas }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "9211d403-7e57-468c-8d15-fb657d426faf",
+      "name": "Crear Reserva",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        64,
+        32
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "194232e4-8e18-4d66-be03-87b7895e9601",
+      "name": "Ver Perfil",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        768,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre_completo": "={{ $json.nombre_completo }}",
+            "email": "={{ $json.email }}",
+            "telefono": "={{ $json.telefono }}",
+            "documento": "={{ $json.documento }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "1e93306b-6f0a-40e3-a843-7ef26d3c3122",
+      "name": "Actualizar Datos",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        896,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "reservas"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "7deab7b5-2a7b-460c-8427-b25253234e23",
+      "name": "Ver Todas Reservas",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        576,
+        -272
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "0974dd90-349e-4413-a0c2-fc5dd23461a5",
+      "name": "Ver Clientes",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        704,
+        -272
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "pagos"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "7e2d5b10-19b1-4e19-bc04-f55dd54ae62f",
+      "name": "Ver Pagos",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        832,
+        -272
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "descriptionType": "manual",
+        "toolDescription": "Registra un nuevo pago. Campos requeridos: id_reserva (texto formato R-XXXX), monto (número decimal), metodo (texto: efectivo/tarjeta/transferencia/PSE). Campo opcional: estado (texto: completado/pendiente, por defecto completado). Retorna el ID del pago creado.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "pagos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_reserva": "={{ $json.id_reserva }}",
+            "monto": "={{ $json.monto }}",
+            "metodo": "={{ $json.metodo }}",
+            "estado": "={{ $json.estado || 'completado' }}"
+          },
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "57669314-9496-4313-8d39-4c7ef7280ec2",
+      "name": "Crear Pago",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        960,
+        -272
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "696f1dab-06b7-496c-8e76-1a8180a15a54",
+      "name": "Send Telegram Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        -192
+      ],
+      "webhookId": "767855ba-67b2-4216-a53c-dcab971b609e",
+      "credentials": {
+        "telegramApi": {
+          "id": "kFynHhKW5aJRuAUX",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "44c9a097-625b-40f4-9a52-c9f210305161",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        -400
+      ],
+      "webhookId": "c05940a0-a2bf-46c8-9afc-0d2abf119cc2",
+      "credentials": {
+        "telegramApi": {
+          "id": "kFynHhKW5aJRuAUX",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "descriptionType": "manual",
+        "toolDescription": "Crea un nuevo cliente en el sistema. Campos requeridos: nombre_completo (texto), email (texto), telefono (texto). Campos opcionales: documento (texto), tipo_cliente (texto: nuevo/frecuente/VIP, por defecto 'nuevo'). Retorna el cliente creado con su id_cliente generado automáticamente.",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "clientes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre_completo": "={{ $json.nombre_completo }}",
+            "email": "={{ $json.email }}",
+            "telefono": "={{ $json.telefono }}",
+            "documento": "={{ $json.documento }}",
+            "tipo_cliente": "={{ $json.tipo_cliente || 'nuevo' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "c29a1879-f250-4e7c-8b53-79d42cb84d95",
+      "name": "Crear Cliente",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        1088,
+        96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "zp8jhHXrxcbGGmQO",
+          "name": "DBSD"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model - Cliente": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Cliente",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model - Admin": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ver Mis Reservas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Cliente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Reserva": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Cliente",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ver Perfil": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Cliente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Datos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Cliente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ver Todas Reservas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ver Clientes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ver Pagos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Pago": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Cliente": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Admin": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Cliente": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Admin",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a2bd9952-746c-4262-b246-6e5ab1c41ae9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f877d71f11ae2e89e3b8607a3126fbd043a687beb965569fe90f25585b3da9ec"
+  },
+  "id": "JT0HyNfTi2ZiIpZv",
+  "tags": []
+}

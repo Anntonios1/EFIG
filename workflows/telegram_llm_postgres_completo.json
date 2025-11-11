@@ -1,0 +1,405 @@
+{
+  "name": "Telegram Bot + LLM + PostgreSQL",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "telegram-bot",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "mensaje_usuario",
+              "value": "={{ $json.message.text }}"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "name": "nombre_usuario",
+              "value": "={{ $json.message.from.first_name }} {{ $json.message.from.last_name }}"
+            }
+          ]
+        }
+      },
+      "name": "Extraer Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "={{ $json.mensaje_usuario }}",
+        "options": {}
+      },
+      "name": "LLM - Analizar Intencion",
+      "type": "@n8n/n8n-nodes-langchain.chatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "2",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "system_prompt",
+              "name": "system_prompt",
+              "value": "Eres un asistente de agencia de viajes. Analiza el mensaje del usuario y determina la acción:\n\nACCIONES DISPONIBLES:\n1. REGISTRAR_CLIENTE: El usuario quiere registrarse (nombre, email, teléfono)\n2. CREAR_RESERVA: El usuario quiere hacer una reserva (origen, destino, fechas)\n3. CONSULTAR_RESERVAS: Buscar reservas existentes\n4. REGISTRAR_PAGO: Registrar un pago\n5. LISTAR_CLIENTES: Ver todos los clientes\n6. CONSULTA_GENERAL: Cualquier otra pregunta\n\nESQUEMA DE BASE DE DATOS:\n- clientes (id_cliente, nombre_completo, email, telefono, documento, tipo_cliente)\n- reservas (id_reserva, id_cliente, tipo, origen, destino, fecha_salida, fecha_regreso, estado, precio)\n- pagos (id_pago, id_reserva, monto, metodo, estado)\n\nResponde en formato JSON:\n{\n  \"accion\": \"NOMBRE_ACCION\",\n  \"sql\": \"Query SQL a ejecutar (o null si no aplica)\",\n  \"parametros\": {objeto con datos extraídos},\n  \"respuesta_usuario\": \"Mensaje amigable para el usuario\"\n}\n\nMensaje del usuario: {{ $json.mensaje_usuario }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Preparar Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o-mini"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\"role\": \"system\", \"content\": $node[\"Preparar Prompt\"].json.system_prompt}, {\"role\": \"user\", \"content\": $json.mensaje_usuario}] }}"
+            },
+            {
+              "name": "response_format",
+              "value": "={{ {\"type\": \"json_object\"} }}"
+            },
+            {
+              "name": "temperature",
+              "value": "0.3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "HTTP Request - OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "2",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "respuesta_llm",
+              "name": "respuesta_llm",
+              "value": "={{ JSON.parse($json.choices[0].message.content) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Parse JSON",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.respuesta_llm.accion }}",
+              "operation": "equals",
+              "value2": "REGISTRAR_CLIENTE"
+            }
+          ]
+        }
+      },
+      "name": "IF Registrar Cliente",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO clientes (nombre_completo, email, telefono, tipo_cliente) VALUES ('{{ $json.respuesta_llm.parametros.nombre }}', '{{ $json.respuesta_llm.parametros.email }}', '{{ $json.respuesta_llm.parametros.telefono }}', 'nuevo') RETURNING *;",
+        "options": {}
+      },
+      "name": "PostgreSQL - Insert Cliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1340,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3",
+          "name": "PostgreSQL Agencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.respuesta_llm.accion }}",
+              "operation": "contains",
+              "value2": "CONSULTAR"
+            }
+          ]
+        }
+      },
+      "name": "IF Consulta",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.respuesta_llm.sql }}",
+        "options": {}
+      },
+      "name": "PostgreSQL - Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1340,
+        580
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "3",
+          "name": "PostgreSQL Agencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "respuesta_final",
+              "name": "respuesta_final",
+              "value": "={{ $node[\"Parse JSON\"].json.respuesta_llm.respuesta_usuario }}\\n\\nResultados: {{ JSON.stringify($json) }}",
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "name": "chat_id",
+              "value": "={{ $node[\"Extraer Datos\"].json.chat_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.respuesta_final }}",
+        "additionalFields": {}
+      },
+      "name": "Telegram - Enviar Respuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        480
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "IF Registrar Cliente",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Registrar Cliente": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Insert Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Consulta": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Insert Cliente": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Query": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Enviar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

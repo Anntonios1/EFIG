@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Formulario - Registro de Cliente (Prueba)</title>
+</head>
+<body>
+  <h1>Registro de Cliente - Prueba</h1>
+  <form id="clientForm" method="post" action="https://TU_N8N_HOST/webhook/nuevo-cliente">
+    <label>Nombre completo: <input name="nombre" required></label><br>
+    <label>Email: <input name="email" type="email" required></label><br>
+    <label>Teléfono: <input name="telefono"></label><br>
+    <label>Documento: <input name="documento"></label><br>
+    <button type="submit">Enviar</button>
+  </form>
+  <p>Reemplaza <strong>https://TU_N8N_HOST</strong> por la URL de tu n8n y abre esta página desde tu navegador.</p>
+</body>
+</html>

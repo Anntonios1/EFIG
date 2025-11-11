@@ -1,0 +1,155 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "baseURL": "http://34.66.86.207:8002/v1",
+          "maxTokens": 4000,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [-960, 192],
+      "id": "copilot-model",
+      "name": "Copilot Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "E9v9rpqe8xFnI1cb",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "listar_clientes",
+        "description": "Lista todos los clientes del sistema EFIG. No requiere parámetros. Devuelve array con id_cliente, nombre_completo, email, telefono, tipo_cliente.",
+        "language": "javaScript",
+        "jsCode": "// Llamar al EFIG API Server\nconst response = await fetch('http://34.66.86.207:3001/clientes');\nconst data = await response.json();\n\nif (data.success) {\n  return JSON.stringify({\n    success: true,\n    count: data.count,\n    clientes: data.data\n  }, null, 2);\n} else {\n  return JSON.stringify({\n    success: false,\n    error: data.error || 'Error al obtener clientes'\n  }, null, 2);\n}"
+      },
+      "id": "tool-get-clientes",
+      "name": "GET: Listar Clientes (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [-600, 400]
+    },
+    {
+      "parameters": {
+        "name": "buscar_cliente",
+        "description": "Busca un cliente específico por ID. Parámetro requerido: cliente_id (formato C-XXXX). Devuelve datos completos del cliente.",
+        "language": "javaScript",
+        "jsCode": "// Obtener parámetro\nconst cliente_id = $input.params.cliente_id;\n\nif (!cliente_id) {\n  return JSON.stringify({\n    success: false,\n    error: 'Se requiere cliente_id'\n  }, null, 2);\n}\n\n// Llamar al EFIG API Server\nconst response = await fetch(`http://34.66.86.207:3001/clientes/${cliente_id}`);\nconst data = await response.json();\n\nreturn JSON.stringify(data, null, 2);",
+        "specifyInputSchema": true,
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"cliente_id\": {\n      \"type\": \"string\",\n      \"description\": \"ID del cliente en formato C-XXXX\"\n    }\n  },\n  \"required\": [\"cliente_id\"]\n}"
+      },
+      "id": "tool-get-cliente",
+      "name": "GET: Buscar Cliente (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [-400, 400]
+    },
+    {
+      "parameters": {
+        "name": "listar_reservas",
+        "description": "Lista todas las reservas del sistema. No requiere parámetros. Devuelve array con id_reserva, id_cliente, tipo, destino, fecha_salida, precio, estado.",
+        "language": "javaScript",
+        "jsCode": "// Llamar al EFIG API Server\nconst response = await fetch('http://34.66.86.207:3001/reservas');\nconst data = await response.json();\n\nif (data.success) {\n  return JSON.stringify({\n    success: true,\n    count: data.count,\n    reservas: data.data\n  }, null, 2);\n} else {\n  return JSON.stringify({\n    success: false,\n    error: data.error || 'Error al obtener reservas'\n  }, null, 2);\n}"
+      },
+      "id": "tool-get-reservas",
+      "name": "GET: Listar Reservas (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [-200, 400]
+    },
+    {
+      "parameters": {
+        "name": "listar_pagos",
+        "description": "Lista todos los pagos registrados en el sistema. No requiere parámetros. Devuelve array con id_pago, id_reserva, monto, metodo, estado, fecha_pago.",
+        "language": "javaScript",
+        "jsCode": "// Llamar al EFIG API Server\nconst response = await fetch('http://34.66.86.207:3001/pagos');\nconst data = await response.json();\n\nif (data.success) {\n  return JSON.stringify({\n    success: true,\n    count: data.count,\n    pagos: data.data\n  }, null, 2);\n} else {\n  return JSON.stringify({\n    success: false,\n    error: data.error || 'Error al obtener pagos'\n  }, null, 2);\n}"
+      },
+      "id": "tool-get-pagos",
+      "name": "GET: Listar Pagos (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "name": "crear_cliente",
+        "description": "Crea un nuevo cliente en el sistema. Parámetros requeridos: nombre_completo, email, telefono. Opcionales: documento, tipo_cliente (nuevo/frecuente/VIP). Devuelve el cliente creado con su ID.",
+        "language": "javaScript",
+        "jsCode": "// Obtener parámetros\nconst { nombre_completo, email, telefono, documento, tipo_cliente } = $input.params;\n\nif (!nombre_completo || !email || !telefono) {\n  return JSON.stringify({\n    success: false,\n    error: 'Se requieren nombre_completo, email y telefono'\n  }, null, 2);\n}\n\n// Preparar body\nconst body = {\n  nombre_completo,\n  email,\n  telefono,\n  documento: documento || null,\n  tipo_cliente: tipo_cliente || 'nuevo'\n};\n\n// Llamar al EFIG API Server\nconst response = await fetch('http://34.66.86.207:3001/clientes', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify(body)\n});\n\nconst data = await response.json();\nreturn JSON.stringify(data, null, 2);",
+        "specifyInputSchema": true,
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"nombre_completo\": {\n      \"type\": \"string\",\n      \"description\": \"Nombre completo del cliente\"\n    },\n    \"email\": {\n      \"type\": \"string\",\n      \"description\": \"Email del cliente\"\n    },\n    \"telefono\": {\n      \"type\": \"string\",\n      \"description\": \"Teléfono del cliente\"\n    },\n    \"documento\": {\n      \"type\": \"string\",\n      \"description\": \"Documento de identidad (opcional)\"\n    },\n    \"tipo_cliente\": {\n      \"type\": \"string\",\n      \"description\": \"Tipo: nuevo, frecuente o VIP\"\n    }\n  },\n  \"required\": [\"nombre_completo\", \"email\", \"telefono\"]\n}"
+      },
+      "id": "tool-post-cliente",
+      "name": "POST: Crear Cliente (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [-600, 600]
+    },
+    {
+      "parameters": {
+        "name": "crear_reserva",
+        "description": "Crea una nueva reserva. Parámetros requeridos: id_cliente (C-XXXX), tipo (vuelo/hotel/paquete), destino, fecha_salida (YYYY-MM-DD), precio. Opcionales: origen, fecha_regreso, notas.",
+        "language": "javaScript",
+        "jsCode": "// Obtener parámetros\nconst { id_cliente, tipo, origen, destino, fecha_salida, fecha_regreso, precio, notas } = $input.params;\n\nif (!id_cliente || !tipo || !destino || !fecha_salida || !precio) {\n  return JSON.stringify({\n    success: false,\n    error: 'Faltan parámetros requeridos: id_cliente, tipo, destino, fecha_salida, precio'\n  }, null, 2);\n}\n\n// Preparar body\nconst body = {\n  id_cliente,\n  tipo,\n  origen: origen || null,\n  destino,\n  fecha_salida,\n  fecha_regreso: fecha_regreso || null,\n  precio: parseFloat(precio),\n  notas: notas || null\n};\n\n// Llamar al EFIG API Server\nconst response = await fetch('http://34.66.86.207:3001/reservas', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify(body)\n});\n\nconst data = await response.json();\nreturn JSON.stringify(data, null, 2);",
+        "specifyInputSchema": true,
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"id_cliente\": {\n      \"type\": \"string\",\n      \"description\": \"ID del cliente (C-XXXX)\"\n    },\n    \"tipo\": {\n      \"type\": \"string\",\n      \"description\": \"Tipo: vuelo, hotel o paquete\"\n    },\n    \"origen\": {\n      \"type\": \"string\",\n      \"description\": \"Ciudad de origen\"\n    },\n    \"destino\": {\n      \"type\": \"string\",\n      \"description\": \"Ciudad de destino\"\n    },\n    \"fecha_salida\": {\n      \"type\": \"string\",\n      \"description\": \"Fecha formato YYYY-MM-DD\"\n    },\n    \"fecha_regreso\": {\n      \"type\": \"string\",\n      \"description\": \"Fecha formato YYYY-MM-DD\"\n    },\n    \"precio\": {\n      \"type\": \"number\",\n      \"description\": \"Precio en decimales\"\n    },\n    \"notas\": {\n      \"type\": \"string\",\n      \"description\": \"Notas adicionales\"\n    }\n  },\n  \"required\": [\"id_cliente\", \"tipo\", \"destino\", \"fecha_salida\", \"precio\"]\n}"
+      },
+      "id": "tool-post-reserva",
+      "name": "POST: Crear Reserva (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [-400, 600]
+    },
+    {
+      "parameters": {
+        "name": "crear_pago",
+        "description": "Registra un nuevo pago. Parámetros requeridos: id_reserva (R-XXXX), monto, metodo (efectivo/tarjeta/transferencia/PSE). Opcional: estado (completado/pendiente).",
+        "language": "javaScript",
+        "jsCode": "// Obtener parámetros\nconst { id_reserva, monto, metodo, estado } = $input.params;\n\nif (!id_reserva || !monto || !metodo) {\n  return JSON.stringify({\n    success: false,\n    error: 'Se requieren: id_reserva, monto, metodo'\n  }, null, 2);\n}\n\n// Preparar body\nconst body = {\n  id_reserva,\n  monto: parseFloat(monto),\n  metodo,\n  estado: estado || 'completado'\n};\n\n// Llamar al EFIG API Server\nconst response = await fetch('http://34.66.86.207:3001/pagos', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify(body)\n});\n\nconst data = await response.json();\nreturn JSON.stringify(data, null, 2);",
+        "specifyInputSchema": true,
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"id_reserva\": {\n      \"type\": \"string\",\n      \"description\": \"ID de la reserva (R-XXXX)\"\n    },\n    \"monto\": {\n      \"type\": \"number\",\n      \"description\": \"Monto del pago\"\n    },\n    \"metodo\": {\n      \"type\": \"string\",\n      \"description\": \"Método: efectivo, tarjeta, transferencia o PSE\"\n    },\n    \"estado\": {\n      \"type\": \"string\",\n      \"description\": \"Estado: completado o pendiente\"\n    }\n  },\n  \"required\": [\"id_reserva\", \"monto\", \"metodo\"]\n}"
+      },
+      "id": "tool-post-pago",
+      "name": "POST: Crear Pago (EFIG API)",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [-200, 600]
+    }
+  ],
+  "connections": {
+    "Copilot Chat Model": {
+      "ai_languageModel": [[]]
+    },
+    "GET: Listar Clientes (EFIG API)": {
+      "ai_tool": [[]]
+    },
+    "GET: Buscar Cliente (EFIG API)": {
+      "ai_tool": [[]]
+    },
+    "GET: Listar Reservas (EFIG API)": {
+      "ai_tool": [[]]
+    },
+    "GET: Listar Pagos (EFIG API)": {
+      "ai_tool": [[]]
+    },
+    "POST: Crear Cliente (EFIG API)": {
+      "ai_tool": [[]]
+    },
+    "POST: Crear Reserva (EFIG API)": {
+      "ai_tool": [[]]
+    },
+    "POST: Crear Pago (EFIG API)": {
+      "ai_tool": [[]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f595fdaae77b3278694f72ad406143f43495832a43bfe8c294dccb2f6c43a3df"
+  }
+}

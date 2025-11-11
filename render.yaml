@@ -1,0 +1,83 @@
+services:
+  - type: web
+    name: efig-n8n
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    healthCheckPath: /healthz
+    envVars:
+      # Configuración básica de n8n
+      - key: N8N_HOST
+        value: "0.0.0.0"
+      - key: N8N_PORT
+        value: "5678"
+      - key: N8N_PROTOCOL
+        value: "https"
+      - key: NODE_ENV
+        value: "production"
+      
+      # URLs y webhooks
+      - key: WEBHOOK_URL
+        value: "https://efig-n8n.onrender.com"
+      - key: N8N_EDITOR_BASE_URL
+        value: "https://efig-n8n.onrender.com"
+      
+      # Autenticación
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: "true"
+      - key: N8N_BASIC_AUTH_USER
+        value: "admin"
+      - key: N8N_BASIC_AUTH_PASSWORD
+        generateValue: true
+      
+      # Configuración de seguridad
+      - key: N8N_SECURE_COOKIE
+        value: "true"
+      
+      # Base de datos PostgreSQL
+      - key: DB_TYPE
+        value: "postgresdb"
+      - key: DB_POSTGRESDB_HOST
+        fromDatabase:
+          name: efig-postgres
+          property: host
+      - key: DB_POSTGRESDB_PORT
+        fromDatabase:
+          name: efig-postgres
+          property: port
+      - key: DB_POSTGRESDB_DATABASE
+        fromDatabase:
+          name: efig-postgres
+          property: database
+      - key: DB_POSTGRESDB_USER
+        fromDatabase:
+          name: efig-postgres
+          property: user
+      - key: DB_POSTGRESDB_PASSWORD
+        fromDatabase:
+          name: efig-postgres
+          property: password
+      - key: DB_POSTGRESDB_SSL_ENABLED
+        value: "true"
+      - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+        value: "false"
+      
+      # Configuración de logging
+      - key: N8N_LOG_LEVEL
+        value: "info"
+      - key: N8N_LOG_OUTPUT
+        value: "console"
+      
+      # Timezone
+      - key: TZ
+        value: "America/Bogota"
+
+databases:
+  - name: efig-postgres
+    databaseName: n8n_db
+    user: n8n_user
+    plan: free
+    region: oregon

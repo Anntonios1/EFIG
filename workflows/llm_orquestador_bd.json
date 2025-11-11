@@ -1,0 +1,210 @@
+{
+  "name": "🧠 LLM Orquestador de Base de Datos",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "📥 Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 340]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "user-input",
+              "name": "mensaje_usuario",
+              "type": "string",
+              "value": "Muéstrame todos los clientes"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-user-input",
+      "name": "💬 Mensaje del Usuario",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 340]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://copilot-api:8000/api/chat",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un asistente de agencia de viajes que gestiona una base de datos PostgreSQL.\\n\\nTABLAS DISPONIBLES:\\n\\n1. clientes (id_cliente TEXT auto, nombre TEXT, email TEXT, telefono TEXT, direccion TEXT, fecha_registro TIMESTAMP)\\n2. reservas (id_reserva TEXT auto, id_cliente TEXT, destino TEXT, fecha_inicio DATE, fecha_fin DATE, num_personas INT, precio_total DECIMAL, estado TEXT, fecha_reserva TIMESTAMP)\\n3. pagos (id_pago TEXT auto, id_reserva TEXT, monto DECIMAL, metodo_pago TEXT, fecha_pago TIMESTAMP, estado TEXT)\\n\\nResponde SIEMPRE en este formato JSON:\\n{\\n  \\\"accion\\\": \\\"consulta|insertar|actualizar|respuesta\\\",\\n  \\\"tabla\\\": \\\"clientes|reservas|pagos|ninguna\\\",\\n  \\\"sql\\\": \\\"tu query SQL aqui\\\",\\n  \\\"parametros\\\": {},\\n  \\\"respuesta_usuario\\\": \\\"mensaje amigable\\\"\\n}\\n\\nEJEMPLOS:\\n- Usuario: 'Muéstrame todos los clientes' → {\\\"accion\\\":\\\"consulta\\\",\\\"tabla\\\":\\\"clientes\\\",\\\"sql\\\":\\\"SELECT * FROM clientes\\\",\\\"parametros\\\":{},\\\"respuesta_usuario\\\":\\\"Aquí están todos los clientes:\\\"}\\n- Usuario: 'Registra cliente: Juan, juan@mail.com' → {\\\"accion\\\":\\\"insertar\\\",\\\"tabla\\\":\\\"clientes\\\",\\\"sql\\\":\\\"INSERT INTO clientes (nombre, email) VALUES ('Juan', 'juan@mail.com')\\\",\\\"parametros\\\":{},\\\"respuesta_usuario\\\":\\\"Registrando a Juan...\\\"}\\n\\nREGLAS:\\n- NUNCA incluyas los IDs en INSERT (se generan auto)\\n- Usa ILIKE para búsquedas (case-insensitive)\\n- Fechas formato: 'YYYY-MM-DD'\\n- Estados por defecto: 'pendiente'\\n- SOLO responde JSON válido, sin texto extra\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.mensaje_usuario }}\"\n    }\n  ],\n  \"stream\": false,\n  \"temperature\": 0.3\n}",
+        "options": {}
+      },
+      "id": "llm-analisis",
+      "name": "🤖 LLM Analiza Intención",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer y parsear la respuesta del LLM\nconst llmResponse = $input.item.json.message.content;\n\ntry {\n  // Parsear el JSON de la respuesta\n  const decision = JSON.parse(llmResponse);\n  \n  return {\n    json: {\n      accion: decision.accion,\n      tabla: decision.tabla,\n      sql: decision.sql,\n      parametros: decision.parametros || {},\n      respuesta_usuario: decision.respuesta_usuario,\n      mensaje_original: $('💬 Mensaje del Usuario').item.json.mensaje_usuario\n    }\n  };\n} catch (error) {\n  // Si el LLM no respondió en JSON válido\n  return {\n    json: {\n      accion: 'respuesta',\n      tabla: 'ninguna',\n      sql: '',\n      parametros: {},\n      respuesta_usuario: llmResponse,\n      mensaje_original: $('💬 Mensaje del Usuario').item.json.mensaje_usuario,\n      error: 'LLM no respondió en formato JSON'\n    }\n  };\n}"
+      },
+      "id": "parse-decision",
+      "name": "🔍 Parsear Decisión",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-accion",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "respuesta",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "necesita-db",
+      "name": "❓ ¿Necesita BD?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1040, 340]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "id": "postgres-query",
+      "name": "🗄️ Ejecutar en PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1240, 220],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-creds",
+          "name": "PostgreSQL - Agencia Viajes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear los resultados de la BD\nconst decision = $('🔍 Parsear Decisión').item.json;\nconst resultados = $input.all();\n\nlet respuestaFinal = decision.respuesta_usuario;\n\nif (resultados && resultados.length > 0) {\n  const datos = resultados[0].json;\n  \n  if (decision.accion === 'consulta') {\n    // Si es consulta, agregar los datos\n    if (Array.isArray(datos)) {\n      respuestaFinal += `\\n\\nEncontré ${datos.length} resultado(s):\\n`;\n      respuestaFinal += JSON.stringify(datos, null, 2);\n    } else {\n      respuestaFinal += `\\n\\n${JSON.stringify(datos, null, 2)}`;\n    }\n  } else if (decision.accion === 'insertar') {\n    respuestaFinal += \" ✅ Registro creado exitosamente.\";\n  } else if (decision.accion === 'actualizar') {\n    respuestaFinal += \" ✅ Registro actualizado correctamente.\";\n  }\n} else {\n  respuestaFinal += \"\\n\\n⚠️ No se encontraron resultados.\";\n}\n\nreturn {\n  json: {\n    mensaje_usuario: decision.mensaje_original,\n    accion_realizada: decision.accion,\n    tabla: decision.tabla,\n    sql_ejecutado: decision.sql,\n    respuesta: respuestaFinal,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "format-response-db",
+      "name": "📝 Formatear con Datos BD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Respuesta directa sin BD\nconst decision = $input.item.json;\n\nreturn {\n  json: {\n    mensaje_usuario: decision.mensaje_original,\n    accion_realizada: 'respuesta_directa',\n    tabla: 'ninguna',\n    sql_ejecutado: '',\n    respuesta: decision.respuesta_usuario,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "format-response-direct",
+      "name": "💬 Respuesta Directa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1240, 460]
+    }
+  ],
+  "connections": {
+    "📥 Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "💬 Mensaje del Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Mensaje del Usuario": {
+      "main": [
+        [
+          {
+            "node": "🤖 LLM Analiza Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 LLM Analiza Intención": {
+      "main": [
+        [
+          {
+            "node": "🔍 Parsear Decisión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Parsear Decisión": {
+      "main": [
+        [
+          {
+            "node": "❓ ¿Necesita BD?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❓ ¿Necesita BD?": {
+      "main": [
+        [
+          {
+            "node": "🗄️ Ejecutar en PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "💬 Respuesta Directa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🗄️ Ejecutar en PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "📝 Formatear con Datos BD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T19:45:00.000Z",
+  "versionId": "1"
+}

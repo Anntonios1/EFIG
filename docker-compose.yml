@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://870284ed92c9.ngrok-free.app/
+      - N8N_EDITOR_BASE_URL=https://870284ed92c9.ngrok-free.app/
+      - N8N_SECURE_COOKIE=false
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_LOG_LEVEL=info
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    container_name: n8n_postgres
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8npass
+      POSTGRES_DB: n8n_db
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: n8n_ngrok
+    command:
+      - "http"
+      - "host.docker.internal:5678"
+      - "--authtoken=351Rf5xJHI1v7TJgqhD4l7v0fTL_4ppGLhwVCq59rQ3s9aMT8"
+    ports:
+      - "4040:4040"  # Puerto para el dashboard de ngrok
+    restart: unless-stopped
+
+  copilot-api:
+    build: ./copilot-api-server
+    container_name: copilot_api_server
+    environment:
+      - GITHUB_COPILOT_TOKEN=${GITHUB_COPILOT_TOKEN}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Nota: el archivo db/init.sql se monta para inicializar la base con las tablas.
+# ngrok expone n8n (localhost:5678) públicamente y el dashboard en http://localhost:4040
+# copilot-api expone GPT-4 via GitHub Copilot en http://localhost:8000

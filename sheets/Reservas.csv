@@ -1,0 +1,3 @@
+id_reserva,id_cliente,tipo,origen,destino,fecha_salida,fecha_regreso,estado,precio,notas
+R-1001,C-0001,vuelo,Madrid,Barcelona,2025-11-10,2025-11-15,confirmado,450.00,Vuelo directo
+R-1002,C-0002,paquete,Madrid,Cancún,2025-12-20,2026-01-05,pendiente,2800.00,Todo incluido

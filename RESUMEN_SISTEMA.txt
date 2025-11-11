@@ -1,0 +1,51 @@
+# ================================
+# RESUMEN: N8N LISTO PARA TRABAJAR
+# ================================
+
+## ✅ TODO ESTA CORRIENDO:
+
+- PostgreSQL: puerto 5432
+- n8n: puerto 5678  
+- ngrok: HTTPS público
+
+## 🚀 EMPIEZA AHORA:
+
+1. Abre n8n: http://localhost:5678
+2. Crea tu credencial de Postgres:
+   - Host: postgres
+   - Database: n8n_db
+   - User: n8n
+   - Password: n8npass
+   - Port: 5432
+
+## 📊 BASE DE DATOS:
+
+Tablas ya creadas:
+- clientes (id_cliente, nombre_completo, email, telefono, documento, fecha_registro, tipo_cliente)
+- reservas (id_reserva, id_cliente, tipo, origen, destino, fecha_salida, fecha_regreso, estado, precio, notas)
+- pagos (id_pago, id_reserva, monto, fecha, metodo, estado)
+
+## 🌐 ACCESO PÚBLICO:
+
+URL: https://e149bd15a769.ngrok-free.app
+Dashboard: http://localhost:4040
+
+## 📁 WORKFLOWS DISPONIBLES:
+
+Para importar en n8n:
+- workflows/register_cliente_postgres_n8n.json
+- workflows/register_reserva_postgres_n8n.json
+- workflows/llm_agent_orchestrator_n8n.json
+
+## 🎯 LO QUE TIENES QUE HACER:
+
+1. Importar workflows (opcional, o crea los tuyos)
+2. Configurar credenciales
+3. Activar workflows
+4. ¡Trabajar!
+
+Comando para detener todo cuando termines:
+docker-compose down
+
+Comando para iniciar todo:
+docker-compose up -d

@@ -1,0 +1,49 @@
+# Archivos y directorios que NO deben subirse a Git
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variables de entorno con credenciales
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+
+# Base de datos local
+*.db
+*.sqlite
+
+# Backup files
+backup-*/
+*.backup
+*.dump
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# n8n data (si usas volumen local)
+n8n_data/
+.n8n/
+
+# Archivos temporales
+*.tmp
+*.temp

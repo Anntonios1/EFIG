@@ -1,0 +1,3 @@
+ALTER TABLE clientes ALTER COLUMN id_cliente SET DEFAULT '';
+ALTER TABLE reservas ALTER COLUMN id_reserva SET DEFAULT '';
+ALTER TABLE pagos ALTER COLUMN id_pago SET DEFAULT '';

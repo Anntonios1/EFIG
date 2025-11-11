@@ -1,0 +1,80 @@
+{
+  "name": "Registro de Reserva - Postgres",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nueva-reserva",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 250]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "IDReserva", "value": "={{ 'R-' + Math.floor(Math.random()*9000 + 1000) }}"},
+            {"name": "IDCliente", "value": "={{ $json['idcliente'] || $json['email_cliente'] || '' }}"},
+            {"name": "Tipo", "value": "={{ $json['tipo'] || 'vuelo' }}"},
+            {"name": "Origen", "value": "={{ $json['origen'] || '' }}"},
+            {"name": "Destino", "value": "={{ $json['destino'] || '' }}"},
+            {"name": "FechaSalida", "value": "={{ $json['fecha_salida'] || '' }}"},
+            {"name": "FechaRegreso", "value": "={{ $json['fecha_regreso'] || '' }}"},
+            {"name": "Estado", "value": "pendiente"},
+            {"name": "Precio", "value": "={{ $json['precio'] || 0 }}"}
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [500, 250]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "reservas",
+        "columns": "id_reserva,id_cliente,tipo,origen,destino,fecha_salida,fecha_regreso,estado,precio,notas",
+        "values": "= {{$json[\"IDReserva\"]}}, {{$json[\"IDCliente\"]}}, {{$json[\"Tipo\"]}}, {{$json[\"Origen\"]}}, {{$json[\"Destino\"]}}, {{$json[\"FechaSalida\"]}}, {{$json[\"FechaRegreso\"]}}, {{$json[\"Estado\"]}}, {{$json[\"Precio\"]}}, {{$json[\"Notas\"]}}"
+      },
+      "name": "Postgres Insert Reserva",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [800, 250]
+    },
+    {
+      "parameters": {
+        "summary": "Nueva reserva: {{$json[\"IDReserva\"]}} - {{$json[\"Destino\"]}} ({{$json[\"FechaSalida\"]}})",
+        "description": "Reserva para cliente {{$json[\"IDCliente\"]}}\nDestino: {{$json[\"Destino\"]}}"
+      },
+      "name": "Google Calendar (opcional)",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {"node": "Set", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {"node": "Postgres Insert Reserva", "type": "main", "index": 0},
+          {"node": "Google Calendar (opcional)", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

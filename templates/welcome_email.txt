@@ -1,0 +1,10 @@
+Asunto: Bienvenido a [Nombre Agencia]
+
+Hola {{NombreCompleto}},
+
+Gracias por registrarte en [Nombre Agencia]. Estamos encantados de ayudarte a planear tu próximo viaje.
+
+Pronto uno de nuestros asesores te contactará para conocer tus preferencias y enviarte opciones.
+
+Saludos,
+Equipo [Nombre Agencia]

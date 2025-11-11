@@ -1,0 +1,92 @@
+{
+  "name": "Registro de Nuevo Cliente - Postgres",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nuevo-cliente",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "IDCliente", "value": "={{ 'C-' + Math.floor(Math.random()*9000 + 1000) }}"},
+            {"name": "NombreCompleto", "value": "={{ $json['nombre'] || $json['name'] || '' }}"},
+            {"name": "Email", "value": "={{ $json['email'] || '' }}"},
+            {"name": "Telefono", "value": "={{ $json['telefono'] || $json['phone'] || '' }}"},
+            {"name": "Documento", "value": "={{ $json['documento'] || $json['document'] || '' }}"},
+            {"name": "FechaRegistro", "value": "={{ new Date().toISOString().split('T')[0] }}"},
+            {"name": "TipoCliente", "value": "nuevo"}
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "clientes",
+        "columns": "id_cliente,nombre_completo,email,telefono,documento,fecha_registro,tipo_cliente",
+        "values": "= {{$json[\"IDCliente\"]}}, {{$json[\"NombreCompleto\"]}}, {{$json[\"Email\"]}}, {{$json[\"Telefono\"]}}, {{$json[\"Documento\"]}}, {{$json[\"FechaRegistro\"]}}, {{$json[\"TipoCliente\"]}}"
+      },
+      "name": "Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=YOUR_GMAIL_ADDRESS",
+        "toEmail": "= {{$json[\"Email\"]}}",
+        "subject": "Bienvenido a Nuestra Agencia, {{$json[\"NombreCompleto\"]}}!",
+        "text": "= Hola {{$json[\"NombreCompleto\"]}},\n\nGracias por registrarte. Pronto te contactaremos con opciones y promociones.\n\nSaludos,\nEquipo de la Agencia",
+        "options": {}
+      },
+      "name": "Gmail Send",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "=YOUR_TELEGRAM_CHAT_ID",
+        "text": "Nuevo cliente registrado: {{$json[\"NombreCompleto\"]}} — {{$json[\"Email\"]}}"
+      },
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [800, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {"node": "Set", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {"node": "Postgres", "type": "main", "index": 0},
+          {"node": "Gmail Send", "type": "main", "index": 0},
+          {"node": "Telegram", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
