@@ -45,5 +45,5 @@ EXPOSE 5678
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:5678/healthz || exit 1
 
-# Comando de inicio usando la ruta correcta del binario
-CMD ["node", "/usr/local/lib/node_modules/n8n/bin/n8n", "start"]
+# Usar el comando predeterminado de la imagen n8n
+# No especificamos CMD para usar el ENTRYPOINT original
