@@ -1,11 +1,8 @@
 FROM n8nio/n8n:latest
 
-# Instalar dependencias adicionales si es necesario
+# Instalar dependencias adicionales como root
 USER root
 RUN apk add --no-cache postgresql-client curl
-
-# Cambiar de vuelta al usuario n8n
-USER node
 
 # Variables de entorno para producción
 ENV NODE_ENV=production
@@ -23,6 +20,9 @@ ENV DB_TYPE=postgresdb
 ENV DB_POSTGRESDB_SSL_ENABLED=true
 ENV DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED=false
 
+# Configuración de permisos
+ENV N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+
 # Configuración de seguridad
 ENV N8N_BASIC_AUTH_ACTIVE=true
 ENV N8N_SECURE_COOKIE=true
@@ -31,7 +31,8 @@ ENV N8N_SECURE_COOKIE=true
 ENV WEBHOOK_URL=https://efig.onrender.com
 ENV N8N_EDITOR_BASE_URL=https://efig.onrender.com
 
-# Directorio de trabajo
+# Cambiar de vuelta al usuario node y configurar directorio
+USER node
 WORKDIR /home/node/.n8n
 
 # Crear directorios necesarios
@@ -44,5 +45,5 @@ EXPOSE 5678
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:5678/healthz || exit 1
 
-# Comando de inicio con PATH explícito
-CMD ["/usr/local/bin/n8n", "start"]
+# Comando de inicio usando la ruta correcta del binario
+CMD ["node", "/usr/local/lib/node_modules/n8n/bin/n8n", "start"]

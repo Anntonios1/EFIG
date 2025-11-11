@@ -36,6 +36,8 @@ services:
       # Configuración de seguridad
       - key: N8N_SECURE_COOKIE
         value: "true"
+      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+        value: "true"
       
       # Base de datos PostgreSQL (externa en GCP)
       - key: DB_TYPE
