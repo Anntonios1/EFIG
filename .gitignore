@@ -15,9 +15,14 @@ yarn-error.log*
 logs
 *.log
 
-# Base de datos local
+# Base de datos local - CRITICAL: NO subir datos PostgreSQL
 *.db
 *.sqlite
+db/data/
+postgresql.conf
+pg_hba.conf
+postmaster.pid
+*.pid
 
 # Backup files
 backup-*/
@@ -47,3 +52,4 @@ n8n_data/
 # Archivos temporales
 *.tmp
 *.temp
+ngrok_url.txt
