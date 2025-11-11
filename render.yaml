@@ -21,9 +21,9 @@ services:
       
       # URLs y webhooks
       - key: WEBHOOK_URL
-        value: "https://efig-n8n.onrender.com"
+        value: "https://efig.onrender.com"
       - key: N8N_EDITOR_BASE_URL
-        value: "https://efig-n8n.onrender.com"
+        value: "https://efig.onrender.com"
       
       # Autenticación
       - key: N8N_BASIC_AUTH_ACTIVE
@@ -37,29 +37,19 @@ services:
       - key: N8N_SECURE_COOKIE
         value: "true"
       
-      # Base de datos PostgreSQL
+      # Base de datos PostgreSQL (externa en GCP)
       - key: DB_TYPE
         value: "postgresdb"
       - key: DB_POSTGRESDB_HOST
-        fromDatabase:
-          name: efig-postgres
-          property: host
+        value: "34.66.86.207"
       - key: DB_POSTGRESDB_PORT
-        fromDatabase:
-          name: efig-postgres
-          property: port
+        value: "5433"
       - key: DB_POSTGRESDB_DATABASE
-        fromDatabase:
-          name: efig-postgres
-          property: database
+        value: "n8n_db"
       - key: DB_POSTGRESDB_USER
-        fromDatabase:
-          name: efig-postgres
-          property: user
+        value: "n8n_user"
       - key: DB_POSTGRESDB_PASSWORD
-        fromDatabase:
-          name: efig-postgres
-          property: password
+        sync: false  # Necesitarás configurar esto manualmente
       - key: DB_POSTGRESDB_SSL_ENABLED
         value: "true"
       - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
@@ -74,10 +64,3 @@ services:
       # Timezone
       - key: TZ
         value: "America/Bogota"
-
-databases:
-  - name: efig-postgres
-    databaseName: n8n_db
-    user: n8n_user
-    plan: free
-    region: oregon

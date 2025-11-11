@@ -2,7 +2,7 @@ FROM n8nio/n8n:latest
 
 # Instalar dependencias adicionales si es necesario
 USER root
-RUN apk add --no-cache postgresql-client
+RUN apk add --no-cache postgresql-client curl
 
 # Cambiar de vuelta al usuario n8n
 USER node
@@ -28,8 +28,8 @@ ENV N8N_BASIC_AUTH_ACTIVE=true
 ENV N8N_SECURE_COOKIE=true
 
 # Configuración de webhook y editor
-ENV WEBHOOK_URL=https://efig-n8n.onrender.com
-ENV N8N_EDITOR_BASE_URL=https://efig-n8n.onrender.com
+ENV WEBHOOK_URL=https://efig.onrender.com
+ENV N8N_EDITOR_BASE_URL=https://efig.onrender.com
 
 # Directorio de trabajo
 WORKDIR /home/node/.n8n
@@ -40,9 +40,9 @@ RUN mkdir -p /home/node/.n8n/nodes
 # Exponer puerto
 EXPOSE 5678
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1
+# Healthcheck mejorado
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5678/healthz || exit 1
 
-# Comando de inicio
-CMD ["n8n", "start"]
+# Comando de inicio con PATH explícito
+CMD ["/usr/local/bin/n8n", "start"]
